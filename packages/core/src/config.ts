@@ -12,6 +12,12 @@ export interface OidcConfig {
   scopes: string[];
 }
 
+export interface GraphCredentials {
+  tenantId: string;
+  clientId: string;
+  clientSecret: string;
+}
+
 export interface AppConfig {
   env: "development" | "production" | "test";
   isProduction: boolean;
@@ -24,6 +30,10 @@ export interface AppConfig {
   roleMappings: Record<string, Role>;
   defaultRole: Role;
   corsOrigins: string[];
+  /** Microsoft Graph app-only credentials (for SharePoint etc.), if available. */
+  graph: GraphCredentials | null;
+  /** Register an in-memory demo connector (dev only by default). */
+  connectorsDemo: boolean;
 }
 
 // ── VCAP_SERVICES helpers (Cloud Foundry) ────────────────────────────────────
@@ -104,6 +114,12 @@ function csv(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+/** Extracts the tenant id from an Entra v2.0 authority URL. */
+function tenantFromAuthority(authority: string): string | undefined {
+  const m = /login\.microsoftonline\.com\/([^/]+)/i.exec(authority);
+  return m?.[1];
+}
+
 // ── Public loader ────────────────────────────────────────────────────────────
 
 /**
@@ -167,6 +183,20 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const corsOrigins = csv(get("CORS_ORIGINS"));
   if (corsOrigins.length === 0) corsOrigins.push(baseUrl);
 
+  // Microsoft Graph app-only credentials. Falls back to the OIDC app/tenant so
+  // a single Entra registration (with application permissions added) can serve
+  // both sign-in and Graph access.
+  const graphTenant = get("GRAPH_TENANT_ID") ?? tenantFromAuthority(oidc.authority);
+  const graphClientId = get("GRAPH_CLIENT_ID") ?? oidc.clientId;
+  const graphClientSecret = get("GRAPH_CLIENT_SECRET") ?? oidc.clientSecret;
+  const graph: GraphCredentials | null =
+    graphTenant && graphClientId && graphClientSecret
+      ? { tenantId: graphTenant, clientId: graphClientId, clientSecret: graphClientSecret }
+      : null;
+
+  const connectorsDemo =
+    (get("CONNECTORS_DEMO") ?? (isProduction ? "false" : "true")) === "true";
+
   return {
     env: nodeEnv,
     isProduction,
@@ -179,5 +209,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     roleMappings: parseJsonRecord(get("ROLE_MAPPINGS")),
     defaultRole: get("DEFAULT_ROLE") ?? "viewer",
     corsOrigins,
+    graph,
+    connectorsDemo,
   };
 }

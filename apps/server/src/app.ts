@@ -6,6 +6,8 @@ import type { AppConfig } from "@power-app/core";
 import { createDb, type DbHandle } from "./db/client.js";
 import { runMigrations } from "./db/migrate.js";
 import { registerAuth } from "./auth/plugin.js";
+import { setupConnectors } from "./connectors/setup.js";
+import { registerConnectorRoutes } from "./routes/connectors.js";
 import { registerEntityRoutes } from "./routes/entities.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerMetaRoutes } from "./routes/meta.js";
@@ -51,10 +53,17 @@ export async function buildApp(config: AppConfig): Promise<BuiltApp> {
   // ── Auth (session + Entra/mock) ───────────────────────────────────────────
   await registerAuth(app, { config, db: dbHandle?.db ?? null });
 
+  // ── Connectors (SharePoint / REST / FHIR / demo) ──────────────────────────
+  const connectors = setupConnectors(config, (msg) => app.log.info(msg));
+
   // ── Routes ────────────────────────────────────────────────────────────────
   await registerHealthRoutes(app, dbHandle);
+  await registerMetaRoutes(app, { runtime: connectors });
+  await registerConnectorRoutes(app, {
+    db: dbHandle?.db ?? null,
+    runtime: connectors,
+  });
   if (dbHandle) {
-    await registerMetaRoutes(app);
     await registerEntityRoutes(app, { db: dbHandle.db });
   }
 

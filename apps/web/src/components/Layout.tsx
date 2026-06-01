@@ -1,21 +1,24 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutDashboard, LogOut, Table2 } from "lucide-react";
-import type { EntityMeta } from "@power-app/core/meta";
-import { api } from "../lib/api";
+import { LayoutDashboard, LogOut, Plug, Table2 } from "lucide-react";
+import type { SourceMeta } from "@power-app/core/meta";
+import { api, pathPrefix } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { cn } from "../lib/utils";
 
 export function Layout() {
   const { user, logout } = useAuth();
-  const [entities, setEntities] = useState<EntityMeta[]>([]);
+  const [sources, setSources] = useState<SourceMeta[]>([]);
 
   useEffect(() => {
     api
-      .entitiesMeta()
-      .then((res) => setEntities(res.entities))
-      .catch(() => setEntities([]));
+      .sources()
+      .then((res) => setSources(res.sources))
+      .catch(() => setSources([]));
   }, []);
+
+  const entities = sources.filter((s) => s.kind === "entity");
+  const connectors = sources.filter((s) => s.kind === "connector");
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -24,6 +27,8 @@ export function Layout() {
         ? "bg-primary/10 text-primary"
         : "text-muted-foreground hover:bg-muted hover:text-foreground",
     );
+
+  const sectionLabel = "px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground";
 
   return (
     <div className="flex min-h-screen">
@@ -35,20 +40,36 @@ export function Layout() {
           </div>
           <span className="text-base font-semibold tracking-tight">power-app</span>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           <NavLink to="/" end className={navClass}>
             <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </NavLink>
-          <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Apps
-          </p>
-          {entities.map((entity) => (
-            <NavLink key={entity.name} to={`/e/${entity.name}`} className={navClass}>
+
+          <p className={sectionLabel}>Apps</p>
+          {entities.map((s) => (
+            <NavLink key={s.name} to={`/e/${s.name}`} className={navClass}>
               <Table2 className="h-4 w-4" />
-              {entity.label}
+              {s.label}
             </NavLink>
           ))}
+
+          {connectors.length > 0 && (
+            <>
+              <p className={sectionLabel}>Connected data</p>
+              {connectors.map((s) => (
+                <NavLink
+                  key={s.name}
+                  to={`${pathPrefix("connectors")}/${s.name}`}
+                  className={navClass}
+                  title={s.source}
+                >
+                  <Plug className="h-4 w-4" />
+                  {s.label}
+                </NavLink>
+              ))}
+            </>
+          )}
         </nav>
       </aside>
 

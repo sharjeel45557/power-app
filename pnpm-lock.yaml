@@ -35,6 +35,9 @@ importers:
       '@fastify/static':
         specifier: ^8.0.4
         version: 8.3.0
+      '@power-app/connectors':
+        specifier: workspace:*
+        version: link:../../packages/connectors
       '@power-app/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -133,6 +136,22 @@ importers:
       tsx:
         specifier: ^4.19.2
         version: 4.22.4
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/connectors:
+    dependencies:
+      '@power-app/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.19
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

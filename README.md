@@ -13,10 +13,11 @@ two things that hurt most about PowerApps:
 Authentication is **Microsoft Entra ID (Azure AD) SSO** via OpenID Connect.
 Everything is built to run on **Cloud Foundry**.
 
-> **Status: Phase 2 (App patterns).** On top of the Phase 1 spine (Entra/mock
-> auth, RBAC, audit, Postgres, the generic entity engine), Phase 2 adds a
-> **workflow/approval engine**, a **stats/dashboard** layer, and a **scaffolding
-> CLI** (`paf new entity …`). See the [roadmap](#roadmap).
+> **Status: Phase 3 (Connectors).** On top of the Phase 1 spine (auth, RBAC,
+> audit, Postgres, the entity engine) and the Phase 2 app patterns
+> (workflow/approval engine, dashboard stats, the `paf` CLI), Phase 3 adds a
+> **connector layer** — SharePoint (via Microsoft Graph), generic REST, and FHIR
+> — surfaced through the same UI as native entities. See the [roadmap](#roadmap).
 
 ---
 
@@ -43,7 +44,9 @@ the scaffolder or write it by hand — see
 pnpm scaffold new entity assets --fields "name:text:required,location:text,purchased:date"
 ```
 
-For the workflow engine specifically, see [docs/workflows.md](docs/workflows.md).
+For the workflow engine, see [docs/workflows.md](docs/workflows.md). To surface
+external data (SharePoint, REST, FHIR) as apps, see
+[docs/connectors.md](docs/connectors.md).
 
 ## Architecture at a glance
 
@@ -53,7 +56,9 @@ power-app/                 pnpm monorepo, TypeScript end-to-end
 │  ├─ server/              Fastify API host — auth, entity engine, audit, SPA serving
 │  └─ web/                 React + Vite + Tailwind SPA (app shell + generated UIs)
 ├─ packages/
-│  └─ core/                Framework core: entity engine, RBAC, config, shared types
+│  ├─ core/                Framework core: entity engine, RBAC, workflow, config
+│  ├─ connectors/          Connector framework + SharePoint/REST/FHIR/in-memory
+│  └─ cli/                 The `paf` scaffolding CLI
 ├─ manifest.yml            Cloud Foundry deployment
 └─ docs/                   Setup & design docs
 ```
@@ -127,7 +132,9 @@ CSP hardening, CSRF tokens, and a formal security review are tracked for Phase 4
 - **Phase 2 — App patterns** ✅ — declarative **workflow/approval engine** (state
   machine with per-role transitions, audited), a **stats/dashboard** layer, and
   the **`paf` scaffolding CLI**.
-- **Phase 3 — Connectors** — MS Graph/SharePoint, SQL, REST/FHIR behind one
-  interface.
+- **Phase 3 — Connectors** ✅ — external data behind one interface:
+  **SharePoint** (Microsoft Graph, app-only), generic **REST**, and **FHIR**,
+  surfaced through the same UI as native entities. See
+  [docs/connectors.md](docs/connectors.md).
 - **Phase 4 — Hardening** — tests, CI, CSP/CSRF, security review, docs, and a
   sample app covering all four app patterns.

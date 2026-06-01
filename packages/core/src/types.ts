@@ -111,3 +111,14 @@ export interface EntityMeta {
   /** What the *current* user may do — populated per-request by the server. */
   permissions?: Partial<Record<Action, boolean>>;
 }
+
+/**
+ * A unified "data source" the UI can render generically — either a native
+ * `entity` (Postgres) or an external `connector` (SharePoint, REST, FHIR, …).
+ * Both share the same metadata shape, so one set of forms/tables drives both.
+ */
+export interface SourceMeta extends EntityMeta {
+  kind: "entity" | "connector";
+  /** For connectors: the backing system label, e.g. "SharePoint". */
+  source?: string;
+}

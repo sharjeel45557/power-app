@@ -1,4 +1,4 @@
-import type { EntityMeta, User } from "@power-app/core/meta";
+import type { SourceMeta, User } from "@power-app/core/meta";
 
 export class ApiError extends Error {
   constructor(
@@ -35,11 +35,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export type RecordRow = Record<string, unknown> & { id: string };
 
+/** A data-source kind, used as the API path segment too. */
+export type SourceKind = "entities" | "connectors";
+
 export interface ListResult {
   data: RecordRow[];
   page: number;
   pageSize: number;
-  total: number;
+  total: number | null;
 }
 
 export interface StatsResult {
@@ -53,36 +56,39 @@ export const api = {
 
   logout: () => request<{ ok: boolean }>("/auth/logout", { method: "POST" }),
 
-  entitiesMeta: () => request<{ entities: EntityMeta[] }>("/api/meta/entities"),
+  // ── unified data sources (entities + connectors) ──────────────────────────
+  sources: () => request<{ sources: SourceMeta[] }>("/api/meta/sources"),
 
-  entityMeta: (name: string) =>
-    request<{ entity: EntityMeta }>(`/api/meta/entities/${name}`),
+  sourceMeta: (kind: SourceKind, name: string) =>
+    request<{ entity: SourceMeta }>(`/api/meta/${kind}/${name}`),
 
-  list: (name: string, page = 1, pageSize = 25) =>
-    request<ListResult>(
-      `/api/entities/${name}?page=${page}&pageSize=${pageSize}`,
-    ),
+  list: (kind: SourceKind, name: string, page = 1, pageSize = 25) =>
+    request<ListResult>(`/api/${kind}/${name}?page=${page}&pageSize=${pageSize}`),
 
-  get: (name: string, id: string) =>
-    request<{ data: RecordRow }>(`/api/entities/${name}/${id}`),
+  get: (kind: SourceKind, name: string, id: string) =>
+    request<{ data: RecordRow }>(`/api/${kind}/${name}/${id}`),
 
-  create: (name: string, values: Record<string, unknown>) =>
-    request<{ data: RecordRow }>(`/api/entities/${name}`, {
+  create: (kind: SourceKind, name: string, values: Record<string, unknown>) =>
+    request<{ data: RecordRow }>(`/api/${kind}/${name}`, {
       method: "POST",
       body: JSON.stringify(values),
     }),
 
-  update: (name: string, id: string, values: Record<string, unknown>) =>
-    request<{ data: RecordRow }>(`/api/entities/${name}/${id}`, {
+  update: (
+    kind: SourceKind,
+    name: string,
+    id: string,
+    values: Record<string, unknown>,
+  ) =>
+    request<{ data: RecordRow }>(`/api/${kind}/${name}/${id}`, {
       method: "PATCH",
       body: JSON.stringify(values),
     }),
 
-  remove: (name: string, id: string) =>
-    request<{ ok: boolean }>(`/api/entities/${name}/${id}`, {
-      method: "DELETE",
-    }),
+  remove: (kind: SourceKind, name: string, id: string) =>
+    request<{ ok: boolean }>(`/api/${kind}/${name}/${id}`, { method: "DELETE" }),
 
+  // ── entity-only features ──────────────────────────────────────────────────
   transition: (name: string, id: string, transition: string, note?: string) =>
     request<{ data: RecordRow }>(`/api/entities/${name}/${id}/transitions`, {
       method: "POST",
@@ -94,6 +100,11 @@ export const api = {
       `/api/entities/${name}/stats${groupBy ? `?groupBy=${groupBy}` : ""}`,
     ),
 };
+
+/** The route path prefix for a source kind. */
+export function pathPrefix(kind: SourceKind): string {
+  return kind === "entities" ? "/e" : "/c";
+}
 
 /** Triggers the server-side login redirect, preserving where to return to. */
 export function startLogin(returnTo: string): void {

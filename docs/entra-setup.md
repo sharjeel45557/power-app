@@ -37,6 +37,10 @@ immediately (it is shown only once) → `OIDC_CLIENT_SECRET`.
 - **Token configuration** → **Add groups claim** → select **Security groups**
   (and emit **Group ID**). This puts the user's group object-ids into the token
   so power-app can map them to roles.
+- **(Optional, for SharePoint connectors)** add **Application** permissions —
+  e.g. `Sites.Selected` (preferred, then grant the app access to specific sites)
+  or `Sites.ReadWrite.All` — and grant admin consent. The app then accesses
+  SharePoint lists app-only; see [connectors.md](connectors.md).
 
 > If users belong to many groups Entra may emit a "groups overage" claim instead
 > of the list. If that affects your tenant, tell the dev team — we'll switch to

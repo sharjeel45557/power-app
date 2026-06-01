@@ -29,6 +29,12 @@ packages/core      Framework core (no HTTP, no React):
                    types + RBAC + workflow helpers) so the web bundle never pulls
                    in server deps.
 
+packages/connectors  Connector framework (external data):
+                     - types/registry   ConnectorResource, ConnectorRegistry
+                     - graph/           Graph app-only token + SharePoint list
+                     - rest/            generic REST + FHIR preset
+                     - memory           in-memory connector (dev/demo/tests)
+
 packages/cli       The `paf` scaffolding CLI: `paf new entity <name>` generates
                    the definition + migration and wires it into schema.ts and the
                    registry via marker comments.
@@ -56,6 +62,8 @@ Browser ──▶ Fastify host ──▶ Postgres
    │            ├─ /api/meta/*       entity metadata + per-user permissions
    │            ├─ /api/entities/*   generic CRUD (validate → authorize → audit)
    │            │                    + /:id/transitions (workflow) + /stats
+   │            ├─ /api/connectors/* external data CRUD (RBAC + audit)
+   │            ├─ /api/meta/sources entities + connectors, unified
    │            ├─ /healthz /readyz  CF probes
    └────────────┴─ /*                static SPA (production)
 ```
@@ -134,7 +142,18 @@ server (authoritative) and the client (to render buttons). A `stats` endpoint
 returns grouped counts that drive the dashboard. Details:
 [workflows.md](workflows.md).
 
+## Connectors (Phase 3)
+
+A `ConnectorResource` behaves like an entity but is backed by an external system
+(SharePoint via Microsoft Graph, generic REST, FHIR, or in-memory). The server
+exposes them under `/api/connectors/*` with the same RBAC + audit, and
+`/api/meta/sources` returns entities and connectors together as `SourceMeta` so
+one set of UI components renders both. SharePoint uses app-only Graph auth, so
+the app's service principal accesses lists and power-app enforces its own RBAC —
+users get the data without direct SharePoint permissions. Details:
+[connectors.md](connectors.md).
+
 ## What's next
 
-SharePoint/Graph/SQL/FHIR connectors (Phase 3); tests, CI, CSP/CSRF, and a
-security review (Phase 4). See the roadmap in the [README](../README.md).
+Tests, CI, CSP/CSRF hardening, a security review, and a sample app spanning all
+four patterns (Phase 4). See the roadmap in the [README](../README.md).

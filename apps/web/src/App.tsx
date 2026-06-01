@@ -4,8 +4,8 @@ import { Layout } from "./components/Layout";
 import { Spinner } from "./components/ui";
 import { useAuth } from "./lib/auth";
 import { DashboardPage } from "./pages/DashboardPage";
-import { EntityFormPage } from "./pages/EntityFormPage";
-import { EntityListPage } from "./pages/EntityListPage";
+import { ResourceFormPage } from "./pages/ResourceFormPage";
+import { ResourceListPage } from "./pages/ResourceListPage";
 import { LoginPage } from "./pages/LoginPage";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -37,9 +37,16 @@ export function App() {
         }
       >
         <Route path="/" element={<DashboardPage />} />
-        <Route path="/e/:entity" element={<EntityListPage />} />
-        <Route path="/e/:entity/new" element={<EntityFormPage />} />
-        <Route path="/e/:entity/:id" element={<EntityFormPage />} />
+
+        {/* Native entities */}
+        <Route path="/e/:name" element={<ResourceListPage kind="entities" />} />
+        <Route path="/e/:name/new" element={<ResourceFormPage kind="entities" />} />
+        <Route path="/e/:name/:id" element={<ResourceFormPage kind="entities" />} />
+
+        {/* External connectors */}
+        <Route path="/c/:name" element={<ResourceListPage kind="connectors" />} />
+        <Route path="/c/:name/new" element={<ResourceFormPage kind="connectors" />} />
+        <Route path="/c/:name/:id" element={<ResourceFormPage kind="connectors" />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

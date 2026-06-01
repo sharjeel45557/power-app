@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import type { EntityMeta } from "@power-app/core/meta";
+import type { SourceMeta } from "@power-app/core/meta";
 import { Card, CardBody, CardHeader, CardTitle, Spinner } from "../components/ui";
 import { EntityForm } from "../components/EntityForm";
 import { WorkflowPanel } from "../components/WorkflowPanel";
-import { ApiError, api, type RecordRow } from "../lib/api";
+import { ApiError, api, pathPrefix, type RecordRow, type SourceKind } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
 interface ZodIssue {
@@ -24,13 +24,15 @@ function issuesToFieldErrors(issues: unknown): Record<string, string> {
   return result;
 }
 
-export function EntityFormPage() {
-  const { entity = "", id } = useParams();
+export function ResourceFormPage({ kind }: { kind: SourceKind }) {
+  const { name = "", id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const prefix = pathPrefix(kind);
+  const listPath = `${prefix}/${name}`;
   const isEdit = Boolean(id);
 
-  const [meta, setMeta] = useState<EntityMeta | null>(null);
+  const [meta, setMeta] = useState<SourceMeta | null>(null);
   const [record, setRecord] = useState<RecordRow | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,10 +42,10 @@ export function EntityFormPage() {
     let active = true;
     setLoading(true);
     const work = async () => {
-      const m = await api.entityMeta(entity);
+      const m = await api.sourceMeta(kind, name);
       if (active) setMeta(m.entity);
       if (isEdit && id) {
-        const rec = await api.get(entity, id);
+        const rec = await api.get(kind, name, id);
         if (active) setRecord(rec.data);
       }
     };
@@ -53,7 +55,7 @@ export function EntityFormPage() {
     return () => {
       active = false;
     };
-  }, [entity, id, isEdit]);
+  }, [kind, name, id, isEdit]);
 
   const canEdit = meta?.permissions?.update ?? false;
 
@@ -62,11 +64,11 @@ export function EntityFormPage() {
     setFieldErrors({});
     try {
       if (isEdit && id) {
-        await api.update(entity, id, values);
+        await api.update(kind, name, id, values);
       } else {
-        await api.create(entity, values);
+        await api.create(kind, name, values);
       }
-      navigate(`/e/${entity}`);
+      navigate(listPath);
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
         setFieldErrors(issuesToFieldErrors(err.issues));
@@ -79,8 +81,8 @@ export function EntityFormPage() {
 
   const handleTransition = async (transition: string, note?: string) => {
     if (!id) return;
-    const res = await api.transition(entity, id, transition, note);
-    setRecord(res.data); // reflect the new state immediately
+    const res = await api.transition(name, id, transition, note);
+    setRecord(res.data);
   };
 
   if (loading) {
@@ -104,14 +106,14 @@ export function EntityFormPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <button
-        onClick={() => navigate(`/e/${entity}`)}
+        onClick={() => navigate(listPath)}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to {meta.label}
       </button>
 
-      {isEdit && meta.workflow && record && (
+      {isEdit && meta.kind === "entity" && meta.workflow && record && (
         <WorkflowPanel
           meta={meta}
           record={record}
@@ -135,7 +137,7 @@ export function EntityFormPage() {
             initialValues={record}
             submitLabel={isEdit ? "Save changes" : `Create ${meta.labelSingular}`}
             onSubmit={handleSubmit}
-            onCancel={() => navigate(`/e/${entity}`)}
+            onCancel={() => navigate(listPath)}
             fieldErrors={fieldErrors}
             readOnly={isEdit && !canEdit}
           />
