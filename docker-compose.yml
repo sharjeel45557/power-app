@@ -1,0 +1,25 @@
+# Local development dependencies. Start with:  docker compose up -d
+#
+# This provides a Postgres instance matching the default DATABASE_URL in
+# .env.example. Not used in Cloud Foundry (a bound service is used there).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: power-app-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: power
+      POSTGRES_PASSWORD: power
+      POSTGRES_DB: power_app
+    ports:
+      - "5432:5432"
+    volumes:
+      - power-app-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U power -d power_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  power-app-pgdata:

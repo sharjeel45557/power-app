@@ -1,0 +1,28 @@
+{
+  "name": "power-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An in-house, developer-first framework for building internal line-of-business apps with Entra ID SSO. A PowerApps replacement.",
+  "packageManager": "pnpm@10.33.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm --filter @power-app/core build && pnpm --filter @power-app/web build && pnpm --filter @power-app/server build",
+    "typecheck": "pnpm --filter @power-app/core build && pnpm -r typecheck",
+    "dev": "pnpm --filter @power-app/core build && concurrently -n server,web -c blue,magenta \"pnpm --filter @power-app/server dev\" \"pnpm --filter @power-app/web dev\"",
+    "db:generate": "pnpm --filter @power-app/server db:generate",
+    "db:migrate": "pnpm --filter @power-app/server db:migrate",
+    "start": "pnpm --filter @power-app/server start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
