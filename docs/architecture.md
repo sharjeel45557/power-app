@@ -153,7 +153,19 @@ the app's service principal accesses lists and power-app enforces its own RBAC â
 users get the data without direct SharePoint permissions. Details:
 [connectors.md](connectors.md).
 
+## Hardening (Phase 4)
+
+Security middleware (`apps/server/src/security.ts`) adds a strict CSP and a CSRF
+origin-check on mutating requests, on top of `helmet`, rate limiting, and Zod
+validation; the posture is documented in [../SECURITY.md](../SECURITY.md). The
+test suite (`node:test` + tsx) covers core/connectors as unit tests and the
+Fastify app + Postgres as integration tests, run in CI â€” see
+[testing.md](testing.md).
+
 ## What's next
 
-Tests, CI, CSP/CSRF hardening, a security review, and a sample app spanning all
-four patterns (Phase 4). See the roadmap in the [README](../README.md).
+The four app patterns are complete and hardened. Remaining productionisation is
+operational: Entra registration, Cloud Foundry provisioning, secrets, and a
+penetration test (see the checklist in the [README](../README.md)). Candidate
+enhancements: connector write-validation, SharePoint deep pagination, and a
+config-driven REST connector.

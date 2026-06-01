@@ -6,6 +6,7 @@ import type { AppConfig } from "@power-app/core";
 import { createDb, type DbHandle } from "./db/client.js";
 import { runMigrations } from "./db/migrate.js";
 import { registerAuth } from "./auth/plugin.js";
+import { contentSecurityPolicy, registerCsrfGuard } from "./security.js";
 import { setupConnectors } from "./connectors/setup.js";
 import { registerConnectorRoutes } from "./routes/connectors.js";
 import { registerEntityRoutes } from "./routes/entities.js";
@@ -37,10 +38,7 @@ export async function buildApp(config: AppConfig): Promise<BuiltApp> {
   }
 
   // ── Security middleware ───────────────────────────────────────────────────
-  await app.register(helmet, {
-    // CSP hardening is a Phase 4 task; disabled now so the SPA loads cleanly.
-    contentSecurityPolicy: false,
-  });
+  await app.register(helmet, { contentSecurityPolicy });
   await app.register(cors, {
     origin: config.corsOrigins,
     credentials: true,
@@ -49,6 +47,8 @@ export async function buildApp(config: AppConfig): Promise<BuiltApp> {
     max: 300,
     timeWindow: "1 minute",
   });
+  // CSRF: reject cross-origin mutating requests (see security.ts).
+  registerCsrfGuard(app, config);
 
   // ── Auth (session + Entra/mock) ───────────────────────────────────────────
   await registerAuth(app, { config, db: dbHandle?.db ?? null });

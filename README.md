@@ -13,11 +13,11 @@ two things that hurt most about PowerApps:
 Authentication is **Microsoft Entra ID (Azure AD) SSO** via OpenID Connect.
 Everything is built to run on **Cloud Foundry**.
 
-> **Status: Phase 3 (Connectors).** On top of the Phase 1 spine (auth, RBAC,
-> audit, Postgres, the entity engine) and the Phase 2 app patterns
-> (workflow/approval engine, dashboard stats, the `paf` CLI), Phase 3 adds a
-> **connector layer** — SharePoint (via Microsoft Graph), generic REST, and FHIR
-> — surfaced through the same UI as native entities. See the [roadmap](#roadmap).
+> **Status: Phase 4 (Hardening) — feature-complete.** All four app patterns are
+> in place (forms, lists/dashboards, approval workflows, integrations). Phase 4
+> adds an automated **test suite** (unit + integration) with **CI**, **CSP +
+> CSRF** hardening, a documented [security posture](SECURITY.md), and a seeded
+> [sample app](docs/sample-app.md). See the [roadmap](#roadmap).
 
 ---
 
@@ -101,7 +101,10 @@ see [docs/entra-setup.md](docs/entra-setup.md).
 | `pnpm dev` | Build core, then run server + web with hot reload |
 | `pnpm build` | Production build of core, web, and server |
 | `pnpm typecheck` | Typecheck every package |
+| `pnpm test` | Run unit + integration tests (integration needs `DATABASE_URL`) |
+| `pnpm test:unit` | Run unit tests only (no database) |
 | `pnpm db:migrate` | Apply pending SQL migrations |
+| `pnpm db:seed` | Insert sample Service Requests |
 | `pnpm db:generate` | (dev) Diff schema → new migration via drizzle-kit |
 | `pnpm scaffold new entity <name>` | Generate + wire up a new entity (the `paf` CLI) |
 | `pnpm start` | Run the built server (serves API + SPA) |
@@ -121,9 +124,12 @@ This is intended for healthcare use, so the foundation bakes in:
   (no server-side session store needed — Cloud-Foundry-friendly).
 - **RBAC** from Entra group claims, enforced server-side on every action.
 - **Append-only audit log** of every mutation and auth event (no PHI in logs).
-- Security headers (`helmet`), rate limiting, and strict input validation.
+- A strict **Content-Security-Policy**, **CSRF** origin-checks on mutating
+  requests, security headers (`helmet`/HSTS), rate limiting, and strict input
+  validation.
 
-CSP hardening, CSRF tokens, and a formal security review are tracked for Phase 4.
+Full details and known gaps are in [SECURITY.md](SECURITY.md). Testing approach:
+[docs/testing.md](docs/testing.md).
 
 ## Roadmap
 
@@ -136,5 +142,14 @@ CSP hardening, CSRF tokens, and a formal security review are tracked for Phase 4
   **SharePoint** (Microsoft Graph, app-only), generic **REST**, and **FHIR**,
   surfaced through the same UI as native entities. See
   [docs/connectors.md](docs/connectors.md).
-- **Phase 4 — Hardening** — tests, CI, CSP/CSRF, security review, docs, and a
-  sample app covering all four app patterns.
+- **Phase 4 — Hardening** ✅ — unit + integration tests with CI, CSP + CSRF
+  hardening, a documented [security posture](SECURITY.md), and a seeded
+  [sample app](docs/sample-app.md) covering all four patterns.
+
+### Production readiness checklist
+
+Before going live, your team still needs to: register the Entra app
+([entra-setup.md](docs/entra-setup.md)), provision Cloud Foundry + a Postgres
+service ([deployment-cloudfoundry.md](docs/deployment-cloudfoundry.md)), supply
+real secrets/session keys, and commission a penetration test (see
+[SECURITY.md](SECURITY.md) for known gaps).

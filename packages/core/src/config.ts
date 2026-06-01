@@ -45,8 +45,8 @@ interface VcapService {
   credentials?: Record<string, unknown>;
 }
 
-function parseVcapServices(): VcapService[] {
-  const raw = process.env.VCAP_SERVICES;
+function parseVcapServices(env: NodeJS.ProcessEnv): VcapService[] {
+  const raw = env.VCAP_SERVICES;
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as Record<string, VcapService[]>;
@@ -127,7 +127,7 @@ function tenantFromAuthority(authority: string): string | undefined {
  * VCAP_SERVICES taken into account. Throws on missing required production values.
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  const services = parseVcapServices();
+  const services = parseVcapServices(env);
   const svcCreds = configServiceCredentials(services);
 
   const get = (key: string): string | undefined =>
