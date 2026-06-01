@@ -8,6 +8,23 @@ This walks through adding an `assets` entity (tracking equipment). It mirrors
 the reference entity in
 [`apps/server/src/entities/requests.ts`](../apps/server/src/entities/requests.ts).
 
+## Fast path: the scaffolding CLI
+
+The `paf` CLI generates the entity definition + migration, adds the Drizzle
+table, and registers the entity — all in one step:
+
+```bash
+pnpm scaffold new entity assets --fields "name:text:required,location:text,purchased:date"
+pnpm db:migrate          # create the table
+```
+
+Supported field types for the generator: `text`, `textarea`, `email`, `date`,
+`datetime`. Add `number`/`boolean`/`select` fields (and a workflow) by editing
+the generated definition. The rest of this page explains what the CLI produces,
+so you can also do it by hand.
+
+---
+
 ## 1. Define the table (Drizzle)
 
 In [`apps/server/src/db/schema.ts`](../apps/server/src/db/schema.ts):

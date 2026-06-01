@@ -20,12 +20,13 @@ const opts = (values: readonly string[]): FieldOption[] =>
       .replace(/\b\w/g, (c) => c.toUpperCase()),
   }));
 
+// `status` is workflow-managed (see `workflow` below), so it is intentionally
+// absent from the create/update schemas — it can only change via transitions.
 const createSchema = z.object({
   title: z.string().trim().min(3).max(200),
   description: z.string().max(5000).optional().nullable(),
   category: z.enum(categories).default("general"),
   priority: z.enum(priorities).default("normal"),
-  status: z.enum(statuses).optional(),
 });
 
 const updateSchema = createSchema.partial();
@@ -80,7 +81,8 @@ export const requestsEntity = defineEntity({
       type: "select",
       options: opts(statuses),
       showInTable: true,
-      helpText: "Workflow transitions arrive in Phase 2.",
+      readOnly: true,
+      helpText: "Managed by the approval workflow.",
     },
     {
       name: "createdBy",
@@ -103,5 +105,48 @@ export const requestsEntity = defineEntity({
     create: "*",
     update: ["admin", "editor"],
     delete: ["admin"],
+  },
+  workflow: {
+    field: "status",
+    initial: "submitted",
+    states: opts(statuses).map((o) => ({ name: o.value, label: o.label })),
+    transitions: [
+      {
+        name: "start_review",
+        label: "Start review",
+        from: ["submitted"],
+        to: "in_review",
+        roles: ["admin", "editor"],
+      },
+      {
+        name: "approve",
+        label: "Approve",
+        from: ["in_review"],
+        to: "approved",
+        roles: ["admin"],
+      },
+      {
+        name: "reject",
+        label: "Reject",
+        from: ["in_review"],
+        to: "rejected",
+        roles: ["admin"],
+        requireNote: true,
+      },
+      {
+        name: "complete",
+        label: "Mark complete",
+        from: ["approved"],
+        to: "completed",
+        roles: ["admin", "editor"],
+      },
+      {
+        name: "reopen",
+        label: "Reopen",
+        from: ["rejected", "completed"],
+        to: "submitted",
+        roles: ["admin"],
+      },
+    ],
   },
 });

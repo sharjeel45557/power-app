@@ -40,6 +40,8 @@ export const requests = pgTable("requests", {
     .defaultNow(),
 });
 
+// @power-app/cli:tables — `paf new entity` inserts new table definitions above this line.
+
 export type Request = typeof requests.$inferSelect;
 export type NewRequest = typeof requests.$inferInsert;
 export type AuditEntry = typeof auditLog.$inferInsert;

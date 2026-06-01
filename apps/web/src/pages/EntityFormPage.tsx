@@ -4,7 +4,9 @@ import { ArrowLeft } from "lucide-react";
 import type { EntityMeta } from "@power-app/core/meta";
 import { Card, CardBody, CardHeader, CardTitle, Spinner } from "../components/ui";
 import { EntityForm } from "../components/EntityForm";
+import { WorkflowPanel } from "../components/WorkflowPanel";
 import { ApiError, api, type RecordRow } from "../lib/api";
+import { useAuth } from "../lib/auth";
 
 interface ZodIssue {
   path: (string | number)[];
@@ -25,10 +27,11 @@ function issuesToFieldErrors(issues: unknown): Record<string, string> {
 export function EntityFormPage() {
   const { entity = "", id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isEdit = Boolean(id);
 
   const [meta, setMeta] = useState<EntityMeta | null>(null);
-  const [initial, setInitial] = useState<RecordRow | undefined>();
+  const [record, setRecord] = useState<RecordRow | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -41,7 +44,7 @@ export function EntityFormPage() {
       if (active) setMeta(m.entity);
       if (isEdit && id) {
         const rec = await api.get(entity, id);
-        if (active) setInitial(rec.data);
+        if (active) setRecord(rec.data);
       }
     };
     work()
@@ -51,6 +54,8 @@ export function EntityFormPage() {
       active = false;
     };
   }, [entity, id, isEdit]);
+
+  const canEdit = meta?.permissions?.update ?? false;
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     setError(null);
@@ -72,6 +77,12 @@ export function EntityFormPage() {
     }
   };
 
+  const handleTransition = async (transition: string, note?: string) => {
+    if (!id) return;
+    const res = await api.transition(entity, id, transition, note);
+    setRecord(res.data); // reflect the new state immediately
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -84,6 +95,12 @@ export function EntityFormPage() {
     return <Card className="mx-auto max-w-2xl p-6 text-sm text-destructive">{error ?? "Not found."}</Card>;
   }
 
+  const title = !isEdit
+    ? `New ${meta.labelSingular}`
+    : canEdit
+      ? `Edit ${meta.labelSingular}`
+      : meta.labelSingular;
+
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <button
@@ -94,11 +111,18 @@ export function EntityFormPage() {
         Back to {meta.label}
       </button>
 
+      {isEdit && meta.workflow && record && (
+        <WorkflowPanel
+          meta={meta}
+          record={record}
+          user={user}
+          onTransition={handleTransition}
+        />
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>
-            {isEdit ? `Edit ${meta.labelSingular}` : `New ${meta.labelSingular}`}
-          </CardTitle>
+          <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardBody>
           {error && (
@@ -108,11 +132,12 @@ export function EntityFormPage() {
           )}
           <EntityForm
             meta={meta}
-            initialValues={initial}
+            initialValues={record}
             submitLabel={isEdit ? "Save changes" : `Create ${meta.labelSingular}`}
             onSubmit={handleSubmit}
             onCancel={() => navigate(`/e/${entity}`)}
             fieldErrors={fieldErrors}
+            readOnly={isEdit && !canEdit}
           />
         </CardBody>
       </Card>

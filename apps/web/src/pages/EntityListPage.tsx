@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import type { EntityMeta, FieldMeta } from "@power-app/core/meta";
 import { Badge, Button, Card, Spinner } from "../components/ui";
 import { api, type RecordRow } from "../lib/api";
@@ -116,7 +116,7 @@ export function EntityListPage() {
                     {col.label}
                   </th>
                 ))}
-                {(canUpdate || canDelete) && <th className="w-24 px-4 py-3" />}
+                <th className="w-24 px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -137,30 +137,30 @@ export function EntityListPage() {
                         {renderCell(col, row)}
                       </td>
                     ))}
-                    {(canUpdate || canDelete) && (
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          {canUpdate && (
-                            <Link
-                              to={`/e/${entity}/${row.id}`}
-                              className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                              title="Edit"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Link>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link
+                          to={`/e/${entity}/${row.id}`}
+                          className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          title={canUpdate ? "Edit" : "Open"}
+                        >
+                          {canUpdate ? (
+                            <Pencil className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
                           )}
-                          {canDelete && (
-                            <button
-                              onClick={() => void handleDelete(row.id)}
-                              className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    )}
+                        </Link>
+                        {canDelete && (
+                          <button
+                            onClick={() => void handleDelete(row.id)}
+                            className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}

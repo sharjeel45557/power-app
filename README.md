@@ -13,10 +13,10 @@ two things that hurt most about PowerApps:
 Authentication is **Microsoft Entra ID (Azure AD) SSO** via OpenID Connect.
 Everything is built to run on **Cloud Foundry**.
 
-> **Status: Phase 1 (Foundation).** The framework spine is complete and proven
-> end-to-end: Entra/mock auth, role-based access, audit logging, a Postgres
-> data layer, and a generic entity engine that turns one declaration into a REST
-> API + auto-generated form + filterable table. See the [roadmap](#roadmap).
+> **Status: Phase 2 (App patterns).** On top of the Phase 1 spine (Entra/mock
+> auth, RBAC, audit, Postgres, the generic entity engine), Phase 2 adds a
+> **workflow/approval engine**, a **stats/dashboard** layer, and a **scaffolding
+> CLI** (`paf new entity …`). See the [roadmap](#roadmap).
 
 ---
 
@@ -31,10 +31,19 @@ metadata + access rules). In return, **for free**:
 - a filterable, paginated **data table**
 - **role-based access control** derived from Entra group membership
 - an append-only **audit trail** on every mutation
+- an optional **approval workflow** (state machine) with per-role transitions
 
 The reference entity lives in
-[`apps/server/src/entities/requests.ts`](apps/server/src/entities/requests.ts).
-To add your own, see [docs/adding-an-entity.md](docs/adding-an-entity.md).
+[`apps/server/src/entities/requests.ts`](apps/server/src/entities/requests.ts)
+and includes a five-state approval workflow. To add your own entity, either run
+the scaffolder or write it by hand — see
+[docs/adding-an-entity.md](docs/adding-an-entity.md):
+
+```bash
+pnpm scaffold new entity assets --fields "name:text:required,location:text,purchased:date"
+```
+
+For the workflow engine specifically, see [docs/workflows.md](docs/workflows.md).
 
 ## Architecture at a glance
 
@@ -89,6 +98,7 @@ see [docs/entra-setup.md](docs/entra-setup.md).
 | `pnpm typecheck` | Typecheck every package |
 | `pnpm db:migrate` | Apply pending SQL migrations |
 | `pnpm db:generate` | (dev) Diff schema → new migration via drizzle-kit |
+| `pnpm scaffold new entity <name>` | Generate + wire up a new entity (the `paf` CLI) |
 | `pnpm start` | Run the built server (serves API + SPA) |
 
 ## Deployment
@@ -114,8 +124,9 @@ CSP hardening, CSRF tokens, and a formal security review are tracked for Phase 4
 
 - **Phase 1 — Foundation** ✅ — monorepo, Entra/mock auth, RBAC, audit, Postgres,
   the generic entity engine, one reference app, Cloud Foundry manifest.
-- **Phase 2 — App patterns** — workflow/approval engine, dashboards, and a
-  scaffolding CLI (`paf new entity …`).
+- **Phase 2 — App patterns** ✅ — declarative **workflow/approval engine** (state
+  machine with per-role transitions, audited), a **stats/dashboard** layer, and
+  the **`paf` scaffolding CLI**.
 - **Phase 3 — Connectors** — MS Graph/SharePoint, SQL, REST/FHIR behind one
   interface.
 - **Phase 4 — Hardening** — tests, CI, CSP/CSRF, security review, docs, and a

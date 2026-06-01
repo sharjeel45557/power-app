@@ -63,6 +63,43 @@ export interface FieldMeta {
   placeholder?: string;
 }
 
+// ── Workflow (state machine for approvals / status transitions) ──────────────
+
+export interface WorkflowState {
+  /** Stored value, e.g. "in_review". */
+  name: string;
+  label: string;
+}
+
+export interface WorkflowTransition {
+  /** Action id used by the API, e.g. "approve". */
+  name: string;
+  /** Button label, e.g. "Approve". */
+  label: string;
+  /** States this transition may fire from; "*" means any state. */
+  from: string[] | "*";
+  /** Resulting state. */
+  to: string;
+  /**
+   * Who may perform it: "*" = any authenticated user, or a set of roles.
+   * Independent of the entity's `update` access — an approver may transition
+   * without being able to edit fields. Defaults to "*".
+   */
+  roles?: Role[] | "*";
+  /** Require a note/justification to perform the transition. */
+  requireNote?: boolean;
+}
+
+/** Declarative state machine bound to one field of an entity. */
+export interface WorkflowDefinition {
+  /** The field that holds the state (e.g. "status"). */
+  field: string;
+  /** State assigned on create. */
+  initial: string;
+  states: WorkflowState[];
+  transitions: WorkflowTransition[];
+}
+
 /** Serialisable description of an entity, sent to the client to render UI. */
 export interface EntityMeta {
   name: string;
@@ -70,6 +107,7 @@ export interface EntityMeta {
   labelSingular: string;
   fields: FieldMeta[];
   defaultSort?: { field: string; dir: "asc" | "desc" };
+  workflow?: WorkflowDefinition;
   /** What the *current* user may do — populated per-request by the server. */
   permissions?: Partial<Record<Action, boolean>>;
 }

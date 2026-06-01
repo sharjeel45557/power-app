@@ -1,8 +1,15 @@
-import { asc, desc, eq, getTableColumns, sql } from "drizzle-orm";
+import { asc, count, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import type { FastifyInstance } from "fastify";
 import { ZodError } from "zod";
-import { can, type Action, type EntityDefinition } from "@power-app/core";
+import {
+  can,
+  canFireFrom,
+  findTransition,
+  userCanTransition,
+  type Action,
+  type EntityDefinition,
+} from "@power-app/core";
 import type { Db } from "../db/client.js";
 import { writeAudit } from "../audit.js";
 import { getEntity } from "../entities/index.js";
@@ -133,6 +140,11 @@ export async function registerEntityRoutes(
 
       if (column(cols, "createdBy") && req.user) values.createdBy = req.user.email;
 
+      // Seed the workflow's initial state when the entity has one.
+      if (def.workflow && values[def.workflow.field] === undefined) {
+        values[def.workflow.field] = def.workflow.initial;
+      }
+
       const [row] = await db
         .insert(def.table)
         .values(values as never)
@@ -215,6 +227,114 @@ export async function registerEntityRoutes(
       return reply.send({ ok: true });
     },
   );
+
+  // ── Workflow transition ─────────────────────────────────────────────────────
+  app.post<{
+    Params: { entity: string; id: string };
+    Body: { transition?: string; note?: string };
+  }>("/api/entities/:entity/:id/transitions", async (req, reply) => {
+    const resolved = resolve(req.params.entity);
+    if (!resolved) return reply.code(404).send({ error: "Unknown entity." });
+    const { def, cols } = resolved;
+
+    const workflow = def.workflow;
+    if (!workflow)
+      return reply.code(400).send({ error: "Entity has no workflow." });
+
+    // Reading is the minimum bar to see the record; transition roles gate the rest.
+    if (!can(req.user, "read", def.access))
+      return reply.code(403).send({ error: "Forbidden." });
+
+    const transitionName = req.body?.transition;
+    const transition = transitionName
+      ? findTransition(workflow, transitionName)
+      : null;
+    if (!transition)
+      return reply.code(400).send({ error: "Unknown transition." });
+
+    const idCol = column(cols, "id");
+    const stateCol = column(cols, workflow.field);
+    if (!idCol || !stateCol)
+      return reply.code(500).send({ error: "Workflow misconfigured." });
+
+    const [row] = await db
+      .select()
+      .from(def.table)
+      .where(eq(idCol, req.params.id))
+      .limit(1);
+    if (!row) return reply.code(404).send({ error: "Not found." });
+
+    const current = String((row as Record<string, unknown>)[workflow.field]);
+    if (!canFireFrom(transition, current)) {
+      return reply
+        .code(409)
+        .send({ error: `Cannot "${transition.name}" from "${current}".` });
+    }
+    if (!userCanTransition(req.user, transition)) {
+      return reply.code(403).send({ error: "Forbidden." });
+    }
+    const note = typeof req.body?.note === "string" ? req.body.note.trim() : "";
+    if (transition.requireNote && !note) {
+      return reply
+        .code(422)
+        .send({ error: "A note is required for this transition." });
+    }
+
+    const values: Record<string, unknown> = { [workflow.field]: transition.to };
+    if (column(cols, "updatedAt")) values.updatedAt = new Date();
+
+    const [updated] = await db
+      .update(def.table)
+      .set(values as never)
+      .where(eq(idCol, req.params.id))
+      .returning();
+
+    await writeAudit(db, req.user, {
+      action: "transition",
+      entity: def.name,
+      entityId: req.params.id,
+      summary: `${def.labelSingular}: ${current} → ${transition.to}`,
+      metadata: {
+        from: current,
+        to: transition.to,
+        transition: transition.name,
+        ...(note ? { note } : {}),
+      },
+    });
+    return reply.send({ data: updated });
+  });
+
+  // ── Aggregate stats (grouped counts) ────────────────────────────────────────
+  app.get<{
+    Params: { entity: string };
+    Querystring: { groupBy?: string };
+  }>("/api/entities/:entity/stats", async (req, reply) => {
+    const resolved = resolve(req.params.entity);
+    if (!resolved) return reply.code(404).send({ error: "Unknown entity." });
+    const { def, cols } = resolved;
+    if (!can(req.user, "list", def.access))
+      return reply.code(403).send({ error: "Forbidden." });
+
+    const totalRows = await db
+      .select({ value: count() })
+      .from(def.table);
+    const total = totalRows[0]?.value ?? 0;
+
+    const groupBy = req.query.groupBy;
+    let buckets: { value: string; count: number }[] = [];
+    if (groupBy) {
+      const groupCol = column(cols, groupBy);
+      if (!groupCol)
+        return reply.code(400).send({ error: `Unknown field "${groupBy}".` });
+      const rows = await db
+        .select({ value: groupCol, count: count() })
+        .from(def.table)
+        .groupBy(groupCol);
+      buckets = rows.map((r) => ({ value: String(r.value), count: r.count }));
+    }
+
+    return reply.send({ total, groupBy: groupBy ?? null, buckets });
+  });
 }
 
 function rowId(row: unknown): string | undefined {

@@ -1,6 +1,11 @@
 import type { PgTable } from "drizzle-orm/pg-core";
 import type { ZodTypeAny } from "zod";
-import type { AccessRules, EntityMeta, FieldMeta } from "./types.js";
+import type {
+  AccessRules,
+  EntityMeta,
+  FieldMeta,
+  WorkflowDefinition,
+} from "./types.js";
 
 /**
  * The full server-side definition of an entity. Pairs the UI metadata with the
@@ -31,6 +36,8 @@ export interface EntityDefinition<TTable extends PgTable = PgTable> {
   access: AccessRules;
   /** Default ordering applied to list queries. */
   defaultSort?: { field: string; dir: "asc" | "desc" };
+  /** Optional state machine driving a status field (approvals, etc.). */
+  workflow?: WorkflowDefinition;
 }
 
 /** Identity helper that preserves the table's type for downstream inference. */
@@ -48,5 +55,6 @@ export function toEntityMeta(def: EntityDefinition): EntityMeta {
     labelSingular: def.labelSingular,
     fields: def.fields,
     defaultSort: def.defaultSort,
+    workflow: def.workflow,
   };
 }

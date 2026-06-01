@@ -19,12 +19,19 @@ app.
 
 ```
 packages/core      Framework core (no HTTP, no React):
-                     - types         User, Role, Action, FieldMeta, EntityMeta
+                     - types         User, Role, Action, FieldMeta, EntityMeta,
+                                     WorkflowDefinition
                      - rbac          can(), permissionsFor(), rolesFromGroups()
+                     - workflow      availableTransitions(), findTransition(), …
                      - entity        defineEntity(), toEntityMeta()
                      - config        loadConfig() incl. VCAP_SERVICES parsing
                    Exposes a browser-safe `@power-app/core/meta` entry (pure
-                   types + RBAC) so the web bundle never pulls in server deps.
+                   types + RBAC + workflow helpers) so the web bundle never pulls
+                   in server deps.
+
+packages/cli       The `paf` scaffolding CLI: `paf new entity <name>` generates
+                   the definition + migration and wires it into schema.ts and the
+                   registry via marker comments.
 
 apps/server        Fastify host:
                      - auth/         Entra OIDC (openid-client) + mock + session
@@ -48,6 +55,7 @@ Browser ──▶ Fastify host ──▶ Postgres
    │            ├─ /auth/*           OIDC login/logout, session cookie, /me
    │            ├─ /api/meta/*       entity metadata + per-user permissions
    │            ├─ /api/entities/*   generic CRUD (validate → authorize → audit)
+   │            │                    + /:id/transitions (workflow) + /stats
    │            ├─ /healthz /readyz  CF probes
    └────────────┴─ /*                static SPA (production)
 ```
@@ -116,8 +124,17 @@ authoring new migrations during development.
 - **No server-side session store** — encrypted cookies instead.
 - **No SSR** — a static SPA served by the API host (simpler on Cloud Foundry).
 
+## Workflow & stats (Phase 2)
+
+A declarative state machine (`WorkflowDefinition`) binds to a status field. The
+generic router exposes `POST /api/entities/:entity/:id/transitions`, which
+validates the current state, the transition, and the user's role before moving
+the record and writing an audit entry. `availableTransitions()` is shared by the
+server (authoritative) and the client (to render buttons). A `stats` endpoint
+returns grouped counts that drive the dashboard. Details:
+[workflows.md](workflows.md).
+
 ## What's next
 
-Workflow/approval engine, dashboards, and a scaffolding CLI (Phase 2);
 SharePoint/Graph/SQL/FHIR connectors (Phase 3); tests, CI, CSP/CSRF, and a
 security review (Phase 4). See the roadmap in the [README](../README.md).

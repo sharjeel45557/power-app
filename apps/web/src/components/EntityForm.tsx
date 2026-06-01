@@ -12,6 +12,8 @@ interface EntityFormProps {
   onCancel: () => void;
   /** Field-level validation issues keyed by field name. */
   fieldErrors?: Record<string, string>;
+  /** When true, inputs are disabled and the submit button is hidden. */
+  readOnly?: boolean;
 }
 
 function toInputValue(value: unknown): string {
@@ -24,16 +26,19 @@ function FieldControl({
   field,
   value,
   onChange,
+  disabled,
 }: {
   field: FieldMeta;
   value: unknown;
   onChange: (v: unknown) => void;
+  disabled?: boolean;
 }) {
   const common = {
     id: field.name,
     name: field.name,
     required: field.required,
     placeholder: field.placeholder,
+    disabled,
   };
 
   switch (field.type) {
@@ -70,6 +75,7 @@ function FieldControl({
           type="checkbox"
           className="h-4 w-4 rounded border-input"
           checked={Boolean(value)}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
         />
       );
@@ -113,6 +119,7 @@ export function EntityForm({
   onSubmit,
   onCancel,
   fieldErrors = {},
+  readOnly = false,
 }: EntityFormProps) {
   const editable = meta.fields.filter((f) => !f.readOnly);
   const [values, setValues] = useState<Values>(() => {
@@ -152,6 +159,7 @@ export function EntityForm({
             field={field}
             value={values[field.name]}
             onChange={(v) => set(field.name, v)}
+            disabled={readOnly}
           />
           {field.helpText && (
             <p className="mt-1 text-xs text-muted-foreground">{field.helpText}</p>
@@ -163,11 +171,13 @@ export function EntityForm({
       ))}
 
       <div className="flex items-center gap-3 pt-2">
-        <Button type="submit" loading={submitting}>
-          {submitLabel}
-        </Button>
+        {!readOnly && (
+          <Button type="submit" loading={submitting}>
+            {submitLabel}
+          </Button>
+        )}
         <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancel
+          {readOnly ? "Close" : "Cancel"}
         </Button>
       </div>
     </form>

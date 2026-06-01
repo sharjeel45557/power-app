@@ -42,6 +42,12 @@ export interface ListResult {
   total: number;
 }
 
+export interface StatsResult {
+  total: number;
+  groupBy: string | null;
+  buckets: { value: string; count: number }[];
+}
+
 export const api = {
   me: () => request<{ user: User }>("/auth/me"),
 
@@ -76,6 +82,17 @@ export const api = {
     request<{ ok: boolean }>(`/api/entities/${name}/${id}`, {
       method: "DELETE",
     }),
+
+  transition: (name: string, id: string, transition: string, note?: string) =>
+    request<{ data: RecordRow }>(`/api/entities/${name}/${id}/transitions`, {
+      method: "POST",
+      body: JSON.stringify({ transition, note }),
+    }),
+
+  stats: (name: string, groupBy?: string) =>
+    request<StatsResult>(
+      `/api/entities/${name}/stats${groupBy ? `?groupBy=${groupBy}` : ""}`,
+    ),
 };
 
 /** Triggers the server-side login redirect, preserving where to return to. */
