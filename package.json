@@ -9,7 +9,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "pnpm --filter @power-app/core build && pnpm --filter @power-app/cli build && pnpm --filter @power-app/web build && pnpm --filter @power-app/server build",
+    "build": "pnpm --filter @power-app/core build && pnpm --filter @power-app/connectors build && pnpm --filter @power-app/cli build && pnpm --filter @power-app/web build && pnpm --filter @power-app/server build",
     "typecheck": "pnpm --filter @power-app/core build && pnpm --filter @power-app/connectors build && pnpm -r typecheck",
     "scaffold": "pnpm --filter @power-app/cli build && node packages/cli/dist/index.js",
     "pretest": "pnpm --filter @power-app/core build && pnpm --filter @power-app/connectors build",
