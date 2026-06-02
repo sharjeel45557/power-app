@@ -11,7 +11,7 @@ import type postgres from "postgres";
  * partially-applied migration can be safely re-run.
  *
  * This is intentionally simpler than drizzle-kit's journal-based migrator: it
- * needs no build-time snapshot, runs cleanly on `cf push`, and is easy to audit.
+ * needs no build-time snapshot, runs cleanly on container start, and is easy to audit.
  */
 export async function runMigrations(
   sql: postgres.Sql,

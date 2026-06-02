@@ -13,14 +13,14 @@ export interface DbHandle {
 }
 
 /**
- * Creates the Drizzle client. SSL is enabled in production (Cloud Foundry
- * service brokers commonly present self-signed certs, so verification is
- * relaxed unless DATABASE_SSL_STRICT=true).
+ * Creates the Drizzle client. SSL is enabled in production (managed Postgres
+ * services often present self-signed certs, so verification is relaxed unless
+ * DATABASE_SSL_STRICT=true).
  */
 export function createDb(config: AppConfig): DbHandle {
   if (!config.databaseUrl) {
     throw new Error(
-      "DATABASE_URL is not set and no Postgres service was found in VCAP_SERVICES.",
+      "DATABASE_URL is not set (and no Postgres binding was found in VCAP_SERVICES).",
     );
   }
 

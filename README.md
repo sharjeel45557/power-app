@@ -11,7 +11,7 @@ two things that hurt most about PowerApps:
    never the foundation.
 
 Authentication is **Microsoft Entra ID (Azure AD) SSO** via OpenID Connect.
-Everything is built to run on **Cloud Foundry**.
+Apps built on it ship as a **single Docker image** (API + SPA in one container).
 
 > **Status: Phase 4 (Hardening) — feature-complete.** All four app patterns are
 > in place (forms, lists/dashboards, approval workflows, integrations). Phase 4
@@ -59,12 +59,12 @@ power-app/                 pnpm monorepo, TypeScript end-to-end
 │  ├─ core/                Framework core: entity engine, RBAC, workflow, config
 │  ├─ connectors/          Connector framework + SharePoint/REST/FHIR/in-memory
 │  └─ cli/                 The `paf` scaffolding CLI
-├─ manifest.yml            Cloud Foundry deployment
+├─ Dockerfile              Production image (API + SPA)
 └─ docs/                   Setup & design docs
 ```
 
 The Fastify host serves both the JSON API and the pre-built SPA, so the whole
-thing is a single `cf push`. Full design notes:
+thing is a single container image. Full design notes:
 [docs/architecture.md](docs/architecture.md).
 
 ## Quick start (local)
@@ -119,19 +119,17 @@ docker build -t power-app:1.0.0 .
 docker run -p 8080:8080 --env-file prod.env power-app:1.0.0
 ```
 
-All config is supplied at runtime via environment variables. Full guide:
-[docs/deployment-docker.md](docs/deployment-docker.md).
-
-The image is also Cloud-Foundry-compatible (`cf push --docker-image …`); a
-buildpack-based CF path is documented in
-[docs/deployment-cloudfoundry.md](docs/deployment-cloudfoundry.md).
+All config is supplied at runtime via environment variables, and the container
+runs anywhere that runs OCI images (Docker, Kubernetes, …). A GitHub Actions
+workflow build-tests the image on PRs and publishes it to GHCR on a version tag.
+Full guide: [docs/deployment-docker.md](docs/deployment-docker.md).
 
 ## Security & compliance
 
 This is intended for healthcare use, so the foundation bakes in:
 
 - **Entra SSO** with auth-code + PKCE; sessions in an encrypted, httpOnly cookie
-  (no server-side session store needed — Cloud-Foundry-friendly).
+  (no server-side session store needed — scales horizontally).
 - **RBAC** from Entra group claims, enforced server-side on every action.
 - **Append-only audit log** of every mutation and auth event (no PHI in logs).
 - A strict **Content-Security-Policy**, **CSRF** origin-checks on mutating
@@ -144,7 +142,7 @@ Full details and known gaps are in [SECURITY.md](SECURITY.md). Testing approach:
 ## Roadmap
 
 - **Phase 1 — Foundation** ✅ — monorepo, Entra/mock auth, RBAC, audit, Postgres,
-  the generic entity engine, one reference app, Cloud Foundry manifest.
+  the generic entity engine, one reference app.
 - **Phase 2 — App patterns** ✅ — declarative **workflow/approval engine** (state
   machine with per-role transitions, audited), a **stats/dashboard** layer, and
   the **`paf` scaffolding CLI**.
@@ -159,7 +157,7 @@ Full details and known gaps are in [SECURITY.md](SECURITY.md). Testing approach:
 ### Production readiness checklist
 
 Before going live, your team still needs to: register the Entra app
-([entra-setup.md](docs/entra-setup.md)), provision Cloud Foundry + a Postgres
-service ([deployment-cloudfoundry.md](docs/deployment-cloudfoundry.md)), supply
+([entra-setup.md](docs/entra-setup.md)), build and ship the Docker image with a
+Postgres database ([deployment-docker.md](docs/deployment-docker.md)), supply
 real secrets/session keys, and commission a penetration test (see
 [SECURITY.md](SECURITY.md) for known gaps).
