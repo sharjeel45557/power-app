@@ -111,9 +111,19 @@ see [docs/entra-setup.md](docs/entra-setup.md).
 
 ## Deployment
 
-Built for **Cloud Foundry**: `pnpm build` then `cf push`. Config (DB, Entra,
-session keys) is read from the environment and `VCAP_SERVICES`, so no secrets
-live in the repo. Full guide:
+Apps built on the framework ship as a **single Docker image** (API + SPA in one
+container, migrations on boot, no secrets baked in):
+
+```bash
+docker build -t power-app:1.0.0 .
+docker run -p 8080:8080 --env-file prod.env power-app:1.0.0
+```
+
+All config is supplied at runtime via environment variables. Full guide:
+[docs/deployment-docker.md](docs/deployment-docker.md).
+
+The image is also Cloud-Foundry-compatible (`cf push --docker-image …`); a
+buildpack-based CF path is documented in
 [docs/deployment-cloudfoundry.md](docs/deployment-cloudfoundry.md).
 
 ## Security & compliance

@@ -1,0 +1,24 @@
+# Rebuilt inside the image — never copy host artifacts in.
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+.pnpm-store
+
+# VCS / CI / editor
+.git
+.github
+.gitignore
+.vscode
+.idea
+
+# Secrets & local env (must NOT be baked into the image)
+.env
+.env.*
+!.env.example
+
+# Misc
+*.log
+coverage
+Dockerfile
+.dockerignore
+docker-compose.yml
