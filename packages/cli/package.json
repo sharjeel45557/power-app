@@ -1,0 +1,21 @@
+{
+  "name": "@power-app/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Scaffolding CLI (paf) — generate entities and wire them in.",
+  "bin": {
+    "paf": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
