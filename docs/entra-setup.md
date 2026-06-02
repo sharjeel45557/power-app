@@ -27,8 +27,9 @@ After creating it, note from the **Overview** page:
 **Certificates & secrets** → **New client secret**. Copy the **Value**
 immediately (it is shown only once) → `OIDC_CLIENT_SECRET`.
 
-> Prefer short expiries and rotate. The value goes into the `power-app-config`
-> user-provided service in Cloud Foundry, never into the repo or manifest.
+> Prefer short expiries and rotate. The value is supplied to the container as
+> the `OIDC_CLIENT_SECRET` environment variable, never committed to the repo or
+> baked into the image.
 
 ## 3. Configure tokens & permissions
 
@@ -61,8 +62,8 @@ This becomes the `ROLE_MAPPINGS` JSON (see below).
 
 ## 5. Environment values for the app
 
-Provide these to the app (via `cf set-env` or the `power-app-config`
-user-provided service — see [deployment-cloudfoundry.md](deployment-cloudfoundry.md)):
+Provide these to the container as environment variables — see
+[deployment-docker.md](deployment-docker.md):
 
 ```bash
 AUTH_MODE=entra

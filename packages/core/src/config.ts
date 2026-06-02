@@ -36,7 +36,7 @@ export interface AppConfig {
   connectorsDemo: boolean;
 }
 
-// ── VCAP_SERVICES helpers (Cloud Foundry) ────────────────────────────────────
+// ── VCAP_SERVICES helpers (optional platform-injected service bindings) ──────
 
 interface VcapService {
   name?: string;
@@ -77,8 +77,9 @@ function databaseUrlFromVcap(services: VcapService[]): string | undefined {
 }
 
 /**
- * Reads config from a user-provided service named `power-app-config` (so secrets
- * never live in the manifest). Its credentials are merged over process.env.
+ * Reads config from a platform service binding named `power-app-config`, if the
+ * runtime injects one via VCAP_SERVICES. Its credentials are merged over
+ * process.env. (Plain environment variables are the primary config source.)
  */
 function configServiceCredentials(
   services: VcapService[],
@@ -123,8 +124,9 @@ function tenantFromAuthority(authority: string): string | undefined {
 // ── Public loader ────────────────────────────────────────────────────────────
 
 /**
- * Builds the typed application config from the environment, with Cloud Foundry
- * VCAP_SERVICES taken into account. Throws on missing required production values.
+ * Builds the typed application config from the environment, also honouring a
+ * platform-injected VCAP_SERVICES blob if present. Throws on missing required
+ * production values.
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const services = parseVcapServices(env);

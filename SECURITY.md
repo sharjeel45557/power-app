@@ -53,9 +53,10 @@ the current posture and how to report issues.
 
 ## Secrets & configuration
 
-- No secrets in the repo. Config is read from the environment and, on Cloud
-  Foundry, from `VCAP_SERVICES` (bound DB) and a `power-app-config`
-  user-provided service (OIDC secret, session keys).
+- No secrets in the repo or the Docker image (`.env` is excluded via
+  `.dockerignore`). All secrets (OIDC client secret, session keys, DB URL) are
+  injected at runtime as environment variables by the platform that runs the
+  container. (A `VCAP_SERVICES` fallback is also honoured if present.)
 - Microsoft Graph access for connectors is **app-only** (client credentials);
   prefer least-privilege Graph permissions (e.g. `Sites.Selected`).
 

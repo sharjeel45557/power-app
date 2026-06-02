@@ -1,7 +1,8 @@
 # Local development dependencies. Start with:  docker compose up -d
 #
 # This provides a Postgres instance matching the default DATABASE_URL in
-# .env.example. Not used in Cloud Foundry (a bound service is used there).
+# .env.example. For local development only — in production point the container
+# at a managed Postgres via DATABASE_URL (see docs/deployment-docker.md).
 services:
   postgres:
     image: postgres:16-alpine

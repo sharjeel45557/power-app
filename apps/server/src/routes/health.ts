@@ -2,8 +2,9 @@ import type { FastifyInstance } from "fastify";
 import type { DbHandle } from "../db/client.js";
 
 /**
- * Liveness (`/healthz`) and readiness (`/readyz`) probes. Cloud Foundry's
- * health-check hits `/healthz`; readiness additionally verifies the database.
+ * Liveness (`/healthz`) and readiness (`/readyz`) probes. The container's
+ * HEALTHCHECK (and orchestrator probes) hit `/healthz`; readiness additionally
+ * verifies the database.
  */
 export async function registerHealthRoutes(
   app: FastifyInstance,

@@ -24,7 +24,7 @@ export interface BuiltApp {
 export async function buildApp(config: AppConfig): Promise<BuiltApp> {
   const app = Fastify({
     logger: { level: process.env.LOG_LEVEL ?? "info" },
-    trustProxy: true, // Cloud Foundry / reverse proxies
+    trustProxy: true, // behind a TLS-terminating ingress / reverse proxy
     bodyLimit: 1_000_000,
   });
 

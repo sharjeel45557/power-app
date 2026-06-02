@@ -3,8 +3,8 @@
 power-app is a **developer framework** for internal line-of-business apps, not a
 no-code visual builder. Developers declare entities and compose UI; the
 framework supplies auth, data, access control, audit, and (later) workflow and
-connectors. It is TypeScript end-to-end and deploys as a single Cloud Foundry
-app.
+connectors. It is TypeScript end-to-end and deploys as a single Docker image
+(one container serving API + SPA).
 
 ## Goals
 
@@ -12,7 +12,8 @@ app.
 - **A real database** — PostgreSQL, not SharePoint Lists.
 - **Microsoft SSO** — Entra ID via OIDC, roles from group claims.
 - **Move fast** — one entity declaration yields API + form + table + RBAC + audit.
-- **Cloud Foundry native** — 12-factor, stateless, config from the environment.
+- **Container-native** — 12-factor, stateless, config from the environment;
+  ships as one Docker image.
 - **Healthcare-ready** — audit everything; keep PHI out of logs.
 
 ## Monorepo layout
@@ -64,7 +65,7 @@ Browser ──▶ Fastify host ──▶ Postgres
    │            │                    + /:id/transitions (workflow) + /stats
    │            ├─ /api/connectors/* external data CRUD (RBAC + audit)
    │            ├─ /api/meta/sources entities + connectors, unified
-   │            ├─ /healthz /readyz  CF probes
+   │            ├─ /healthz /readyz  liveness / readiness probes
    └────────────┴─ /*                static SPA (production)
 ```
 
@@ -108,29 +109,27 @@ hides actions the user can't perform.
 
 ## Configuration
 
-`loadConfig()` reads `process.env` first, then merges Cloud Foundry
-`VCAP_SERVICES`:
-
-- a bound Postgres service supplies `DATABASE_URL`;
-- a user-provided service named `power-app-config` supplies secrets (Entra
-  config, session keys) so nothing sensitive lives in the manifest.
+`loadConfig()` reads configuration from the environment (injected into the
+container at runtime): `DATABASE_URL`, the OIDC settings, `SESSION_KEYS`,
+`ROLE_MAPPINGS`, and optional connector config. A platform-provided
+`VCAP_SERVICES` blob is also parsed as a fallback if present.
 
 Production startup fails fast if required values (session keys, Entra config)
-are missing.
+are missing — so a misconfigured container won't silently come up insecure.
 
 ## Data & migrations
 
 A small forward-only migrator ([`db/migrate.ts`](../apps/server/src/db/migrate.ts))
 applies idempotent `*.sql` files from `apps/server/migrations/` exactly once,
 tracked in a `_migrations` table. It runs automatically on boot and needs no
-build-time snapshot, so `cf push` self-migrates. `drizzle-kit` is available for
-authoring new migrations during development.
+build-time snapshot, so a freshly started container self-migrates. `drizzle-kit`
+is available for authoring new migrations during development.
 
 ## Deliberate non-goals (for now)
 
 - **No visual/no-code builder** — this is a developer framework by design.
 - **No server-side session store** — encrypted cookies instead.
-- **No SSR** — a static SPA served by the API host (simpler on Cloud Foundry).
+- **No SSR** — a static SPA served by the API host (one image, simpler ops).
 
 ## Workflow & stats (Phase 2)
 
@@ -165,7 +164,8 @@ Fastify app + Postgres as integration tests, run in CI — see
 ## What's next
 
 The four app patterns are complete and hardened. Remaining productionisation is
-operational: Entra registration, Cloud Foundry provisioning, secrets, and a
-penetration test (see the checklist in the [README](../README.md)). Candidate
+operational: Entra registration, building/shipping the Docker image with a
+Postgres database, secrets, and a penetration test (see the checklist in the
+[README](../README.md)). Candidate
 enhancements: connector write-validation, SharePoint deep pagination, and a
 config-driven REST connector.
